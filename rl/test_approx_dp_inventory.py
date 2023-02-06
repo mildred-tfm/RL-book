@@ -9,6 +9,7 @@ from rl.dynamic_programming import value_iteration_result
 from rl.distribution import Choose
 from rl.function_approx import Dynamic
 import rl.iterate as iterate
+
 from rl.markov_process import FiniteMarkovRewardProcess, NonTerminal
 from rl.markov_decision_process import FiniteMarkovDecisionProcess
 from rl.policy import FiniteDeterministicPolicy
@@ -16,6 +17,7 @@ from rl.policy import FiniteDeterministicPolicy
 from rl.chapter3.simple_inventory_mdp_cap import (InventoryState,
                                                   SimpleInventoryMDPCap)
 
+from assignments.assignment4.question1 import policy_iteration
 
 # @unittest.skip("Explanation (ie test is too slow)")
 class TestEvaluate(unittest.TestCase):
@@ -87,7 +89,7 @@ class TestEvaluate(unittest.TestCase):
             self.si_mdp,
             self.gamma
         )[0]
-        # print(mdp_map)
+        print(mdp_map)
         mdp_vf1: np.ndarray = np.array([mdp_map[s] for s in self.states])
 
         fa = Dynamic({s: 0.0 for s in self.states})
@@ -99,9 +101,9 @@ class TestEvaluate(unittest.TestCase):
             ),
             done=lambda a, b: a.within(b, 1e-5)
         )
-        # print(mdp_finite_fa.values_map)
+        print(mdp_finite_fa.values_map)
         mdp_vf2: np.ndarray = mdp_finite_fa.evaluate(self.states)
-
+        print(mdp_vf2)
         self.assertLess(max(abs(mdp_vf1 - mdp_vf2)), 0.01)
 
         mdp_fa = iterate.converged(
@@ -114,6 +116,19 @@ class TestEvaluate(unittest.TestCase):
             ),
             done=lambda a, b: a.within(b, 1e-5)
         )
-        # print(mdp_fa.values_map)
+        print(mdp_fa.values_map)
         mdp_vf3: np.ndarray = mdp_fa.evaluate(self.states)
+        print(mdp_vf3)
         self.assertLess(max(abs(mdp_vf1 - mdp_vf3)), 0.01)
+
+        mdp_policy = iterate.converged(
+            policy_iteration(
+                self.si_mdp,
+                self.gamma,
+                fa,
+                Choose(self.states),
+                num_state_samples=10
+            ),
+            done=lambda a, b: a[0].within(b, 10)
+        )
+        print(mdp_policy.values_map)

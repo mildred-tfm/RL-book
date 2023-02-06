@@ -3,9 +3,10 @@ from operator import itemgetter
 import numpy as np
 
 from rl.approximate_dynamic_programming import evaluate_mrp, extended_vf
-from rl.distribution import Distribution
+from rl.distribution import Distribution, Choose
 from rl.function_approx import FunctionApprox
 from rl.iterate import iterate
+import rl.iterate as iter
 from rl.markov_process import (FiniteMarkovRewardProcess, MarkovRewardProcess,
                                RewardTransition, NonTerminal, State)
 from rl.markov_decision_process import (FiniteMarkovDecisionProcess,
@@ -34,7 +35,7 @@ def policy_iteration(
             non_terminal_states_distribution.sample_n(num_state_samples)
         vf, pi = vf_policy
         mrp: FiniteMarkovRewardProcess[S] = mdp.apply_finite_policy(pi)
-        mrp_fa = iterate.converged(
+        policy_vf = iter.converged(
             evaluate_mrp(
                 mrp,
                 γ,
@@ -44,13 +45,17 @@ def policy_iteration(
             ),
             done=lambda a, b: a.within(b, 1e-4)
         )
-        policy_vf: ValueFunctionApprox[S] = mrp_fa.evaluate(nt_states)
+        # policy_vf: np.ndarray = mrp_fa.evaluate(nt_states)
         greedy_policy_dict: Dict[S, A] = {}
-        for s in nt_states:
+        for s in mdp.non_terminal_states:
             q_values: Iterator[Tuple[A, float]] = \
                 ((a, mdp.mapping[s][a].expectation(lambda s_r: s_r[1]+γ*extended_vf(policy_vf, s_r[0]))) for a in mdp.actions(s))
             greedy_policy_dict[s.state] = \
                 max(q_values, key=itemgetter(1))[0]
         improved_pi: FiniteDeterministicPolicy[S, A] = FiniteDeterministicPolicy(greedy_policy_dict)
         return policy_vf, improved_pi
-    return iterate(update, approx_0)
+
+    pi_0: FinitePolicy[S, A] = FinitePolicy(
+        {s.state: Choose(mdp.actions(s)) for s in mdp.non_terminal_states}
+    )
+    return iterate(update, (approx_0, pi_0))
