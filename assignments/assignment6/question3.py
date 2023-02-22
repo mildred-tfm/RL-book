@@ -17,13 +17,13 @@ from pprint import pprint
 S = TypeVar('S')
 
 def mc_prediction_tabular(
-    values_map: Mapping[S, float],
-    counts_map: Mapping[S, int],
+    values_map: Mapping[NonTerminal[S], float],
+    counts_map: Mapping[NonTerminal[S], int],
     traces: Iterable[Iterable[mp.TransitionStep[S]]],
     count_to_weight_func: Callable[[int], float],
     γ: float,
     episode_length_tolerance: float = 1e-6
-) -> Iterator[Mapping[S, float]]:
+) -> Iterator[Mapping[NonTerminal[S], float]]:
     episodes: Iterator[Iterator[mp.ReturnStep[S]]] = \
         (returns(trace, γ, episode_length_tolerance) for trace in traces)
     for episode in episodes:
